@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transfer Portal | Manager</title>
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">TP</div>
+        <div>
+          <div class="title">Transfer Portal</div>
+          <div class="subtitle">Manager dashboard</div>
+        </div>
+      </div>
+      <div class="mode-switch">
+        <a class="ghost" href="index.html">Sign out</a>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <p class="eyebrow">Manager view</p>
+            <h1>Review transfer requests</h1>
+          </div>
+          <div class="hint">Status moves requests into buckets, newest first.</div>
+        </div>
+        <div class="board">
+          <div class="column" data-status="received">
+            <div class="column-header">
+              <span class="dot received"></span>
+              <div>
+                <h3>Received</h3>
+                <p class="eyebrow" id="receivedCount">0</p>
+              </div>
+            </div>
+            <div class="list" id="receivedList"></div>
+          </div>
+          <div class="column" data-status="in-review">
+            <div class="column-header">
+              <span class="dot in-review"></span>
+              <div>
+                <h3>In Review</h3>
+                <p class="eyebrow" id="inReviewCount">0</p>
+              </div>
+            </div>
+            <div class="list" id="inReviewList"></div>
+          </div>
+          <div class="column" data-status="approved">
+            <div class="column-header">
+              <span class="dot approved"></span>
+              <div>
+                <h3>Approved</h3>
+                <p class="eyebrow" id="approvedCount">0</p>
+              </div>
+            </div>
+            <div class="list" id="approvedList"></div>
+          </div>
+          <div class="column" data-status="denied">
+            <div class="column-header">
+              <span class="dot denied"></span>
+              <div>
+                <h3>Denied</h3>
+                <p class="eyebrow" id="deniedCount">0</p>
+              </div>
+            </div>
+            <div class="list" id="deniedList"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <template id="requestCardTemplate">
+    <article class="request-card">
+      <div class="request-top">
+        <div>
+          <p class="eyebrow requester"></p>
+          <h4 class="route"></h4>
+          <p class="eyebrow shift"></p>
+        </div>
+        <div class="timestamps">
+          <p class="eyebrow submitted"></p>
+          <p class="eyebrow updated"></p>
+        </div>
+      </div>
+      <p class="notes"></p>
+      <div class="status-actions">
+        <button class="chip in-review" data-status="in-review">In Review</button>
+        <button class="chip approved" data-status="approved">Approve</button>
+        <button class="chip denied" data-status="denied">Deny</button>
+      </div>
+    </article>
+  </template>
+    <!-- Deny reason modal -->
+  <div id="denyModal" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog">
+      <h3>Reason for denial</h3>
+      <p class="eyebrow">Please provide a reason. This will appear with the request.</p>
+      <textarea id="denyReasonInput" rows="3" placeholder="Enter reason..." required></textarea>
+      <div class="modal-actions">
+        <button type="button" id="denyCancelBtn" class="secondary">Cancel</button>
+        <button type="button" id="denyConfirmBtn" class="danger">Confirm denial</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./js/shared.js"></script>
+  <script src="./js/manager.js"></script>
+</body>
+</html>
