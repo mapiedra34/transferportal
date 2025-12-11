@@ -26,4 +26,26 @@ function formatDate(timestamp) {
     hour: "2-digit",
     minute: "2-digit"
   })}`;
-}
+}window.addEventListener("DOMContentLoaded", () => {
+  let signOutLink = null;
+
+  // Find any <a> containing "Sign out"
+  document.querySelectorAll("a").forEach(a => {
+    if (a.textContent.trim().toLowerCase() === "sign out") {
+      signOutLink = a;
+    }
+  });
+
+  if (!signOutLink) return;
+
+  signOutLink.addEventListener("click", (e) => {
+    e.preventDefault();
+
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userRole");
+
+    window.location.href = "index.html";
+  });
+});
+
+
