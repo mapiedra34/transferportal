@@ -2,7 +2,8 @@
 
 // API base is defined globally in shared.js:
 // const API_BASE = "http://localhost:4000";
-const REQUESTS_URL = `${API_BASE}/api/requests`;
+const REQUESTS_URL = `${API_BASE}/requests`;
+
 
 function setGreeting() {
   const hour = new Date().getHours();

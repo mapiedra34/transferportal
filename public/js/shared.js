@@ -1,9 +1,7 @@
 // public/js/shared.js
 
-// Where your API is running.
-// For dev: Node API is on http://localhost:4000
-// For prod (Static Web Apps), you might later change this to "/api"
-const API_BASE = "http://localhost:4000";
+const API_BASE = "/api";
+
 
 // Constants shared across pages
 const MANAGER_DOMAIN = "microsoft.com";

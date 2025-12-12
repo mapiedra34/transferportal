@@ -1,7 +1,8 @@
 // public/js/manager.js
 
 // API_BASE is defined in shared.js
-const REQUESTS_URL = `${API_BASE}/api/requests`;
+const REQUESTS_URL = `${API_BASE}/requests`;
+
 
 const columns = {
   received: document.getElementById("receivedList"),
