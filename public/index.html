@@ -3,44 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transfer Portal | Sign In</title>
-  <link rel="stylesheet" href="./css/styles.css">
+  <title>Transfer Portal</title>
+  <script>window.location.replace("technician.html");</script>
 </head>
-<body class="login-body">
-  <div class="page narrow">
-    <div class="login-hero">
-      <img src="./media/SAMA.png" alt="SAMA logo">
-    </div>
-
-    <main class="card login-card">
-      <p class="eyebrow">Sign in</p>
-      <h1>Continue with Entra ID</h1>
-      <p class="hint">This demo simulates Entra ID: enter your work email and choose your role.</p>
-
-      <form id="loginForm" class="form">
-        <label class="field">
-          <span>Work email</span>
-          <input type="email" id="loginEmail" name="email" placeholder="you@microsoft.com" required>
-        </label>
-
-        <div class="field">
-          <span>Role</span>
-          <div class="radio-group">
-            <label><input type="radio" name="role" value="technician" checked> Technician</label>
-            <label><input type="radio" name="role" value="manager"> Manager</label>
-          </div>
-        </div>
-
-        <button type="submit" class="primary">Sign in with Entra ID</button>
-      </form>
-
-      <div class="fine-print">
-        For production, replace this with real Entra ID auth and role-based routing. Manager/technician pages respect stored role in this demo.
-      </div>
-    </main>
-  </div>
-
-  <script src="./js/shared.js"></script>
-  <script src="./js/login.js"></script>
-</body>
+<body></body>
 </html>

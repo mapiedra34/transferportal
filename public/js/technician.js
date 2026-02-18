@@ -1,7 +1,5 @@
 // public/js/technician.js
 
-// API base is defined globally in shared.js:
-// const API_BASE = "http://localhost:4000";
 const REQUESTS_URL = `${API_BASE}/requests`;
 
 
@@ -24,21 +22,6 @@ function populateSelect(selectEl, options) {
   });
 }
 
-function enforceRole() {
-  const role = localStorage.getItem("userRole");
-  const email = localStorage.getItem("userEmail");
-
-  // Not signed in → go back to login
-  if (!role || !email) {
-    window.location.href = "index.html";
-    return;
-  }
-
-  // Managers shouldn’t be on this page
-  if (role === "manager") {
-    window.location.href = "manager.html";
-  }
-}
 
 async function handleSubmit(e) {
   e.preventDefault();
@@ -103,17 +86,11 @@ async function handleSubmit(e) {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  enforceRole();
   setGreeting();
 
   populateSelect(document.getElementById("currentSite"), siteOptions);
   populateSelect(document.getElementById("preferredSite"), siteOptions);
   populateSelect(document.getElementById("preferredShift"), shiftOptions);
-
-  const email = localStorage.getItem("userEmail");
-  if (email) {
-    document.getElementById("email").value = email;
-  }
 
   document
     .getElementById("requestForm")

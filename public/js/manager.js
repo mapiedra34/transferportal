@@ -1,6 +1,5 @@
 // public/js/manager.js
 
-// API_BASE is defined in shared.js
 const REQUESTS_URL = `${API_BASE}/requests`;
 
 
@@ -24,20 +23,6 @@ let denyReasonInput;
 let denyConfirmBtn;
 let denyCancelBtn;
 let pendingDenyId = null;
-
-function enforceRole() {
-  const role = localStorage.getItem("userRole");
-  const email = localStorage.getItem("userEmail");
-
-  if (!role || !email) {
-    window.location.href = "index.html";
-    return;
-  }
-
-  if (role !== "manager") {
-    window.location.href = "technician.html";
-  }
-}
 
 function openDenyModal(id) {
   pendingDenyId = id;
@@ -199,8 +184,6 @@ async function renderBoard() {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  enforceRole();
-
   // Wire modal elements
   denyModal = document.getElementById("denyModal");
   denyReasonInput = document.getElementById("denyReasonInput");
