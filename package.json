@@ -1,8 +1,12 @@
 {
-  "name": "transfer-portal-api",
+  "name": "transfer-portal",
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "dev": "bun --watch server.js",
+    "start": "bun server.js"
+  },
   "dependencies": {
     "@azure/cosmos": "^4.2.0"
   }

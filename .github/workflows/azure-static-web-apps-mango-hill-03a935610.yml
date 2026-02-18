@@ -1,47 +1,38 @@
-name: Azure Static Web Apps CI/CD
+name: Bun CI
 
 on:
   push:
     branches:
       - main
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened]
     branches:
       - main
 
 jobs:
-  build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+  bun_ci:
     runs-on: ubuntu-latest
-    name: Build and Deploy Job
-    permissions:
-      id-token: write
-      contents: read
+    name: Install and Verify
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
           lfs: false
 
-      - name: Build and Deploy to Azure Static Web Apps
-        uses: Azure/static-web-apps-deploy@v1
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_MANGO_HILL_03A935610 }}
-          action: "upload"
+          bun-version: latest
 
-          # 🔥 IMPORTANT PATHS
-          app_location: "public"     # Frontend
-          api_location: "api"        # Azure Functions
-          output_location: ""        # No build output directory
-          
-  close_pull_request_job:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    name: Close Pull Request Job
+      - name: Install dependencies
+        run: bun install
 
-    steps:
-      - name: Close Pull Request
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          action: "close"
+      - name: Start server smoke test
+        run: |
+          bun run start > /tmp/transfer-portal.log 2>&1 &
+          SERVER_PID=$!
+          sleep 3
+          curl -f http://localhost:3000/ > /dev/null
+          kill $SERVER_PID
+          wait $SERVER_PID || true

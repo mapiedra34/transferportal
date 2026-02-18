@@ -1,19 +1,19 @@
 import { CosmosClient } from "@azure/cosmos";
 
-const connectionString = process.env.COSMOS_CONNECTION_STRING;
 const databaseId = process.env.COSMOS_DB || "transferPortal";
 const containerId = process.env.COSMOS_CONTAINER || "transferRequests";
-
-if (!connectionString) {
-  throw new Error("Missing COSMOS_CONNECTION_STRING");
-}
-
-const client = new CosmosClient(connectionString);
 
 let containerCache = null;
 
 export async function getContainer() {
   if (containerCache) return containerCache;
+
+  const connectionString = process.env.COSMOS_CONNECTION_STRING;
+  if (!connectionString) {
+    throw new Error("Missing COSMOS_CONNECTION_STRING");
+  }
+
+  const client = new CosmosClient(connectionString);
 
   const { database } = await client.databases.createIfNotExists({ id: databaseId });
 
