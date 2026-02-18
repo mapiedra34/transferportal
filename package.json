@@ -6,8 +6,5 @@
   "scripts": {
     "dev": "bun --watch server.js",
     "start": "bun server.js"
-  },
-  "dependencies": {
-    "@azure/cosmos": "^4.2.0"
   }
 }

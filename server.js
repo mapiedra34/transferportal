@@ -1,10 +1,10 @@
 import crypto from "node:crypto";
 import { join, normalize } from "node:path";
-import { getContainer } from "./api/shared/cosmosClient.js";
 
 const publicDir = join(import.meta.dir, "public");
 const VALID_STATUSES = ["received", "in-review", "approved", "denied"];
 const port = Number(process.env.PORT || 3000);
+const requests = [];
 
 function withCorsHeaders(origin) {
   return {
@@ -31,21 +31,10 @@ async function parseJson(request) {
 }
 
 async function handleGetRequests(url, corsHeaders) {
-  const container = await getContainer();
   const status = url.searchParams.get("status");
-
-  const querySpec = status
-    ? {
-        query: "SELECT * FROM c WHERE c.status = @status ORDER BY c.submittedAt DESC",
-        parameters: [{ name: "@status", value: status }]
-      }
-    : { query: "SELECT * FROM c ORDER BY c.submittedAt DESC" };
-
-  const { resources } = await container.items
-    .query(querySpec, { enableCrossPartitionQuery: true })
-    .fetchAll();
-
-  return jsonResponse(resources, 200, corsHeaders);
+  const filtered = status ? requests.filter((request) => request.status === status) : requests;
+  const sorted = [...filtered].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+  return jsonResponse(sorted, 200, corsHeaders);
 }
 
 async function handlePostRequests(request, corsHeaders) {
@@ -69,9 +58,8 @@ async function handlePostRequests(request, corsHeaders) {
     return jsonResponse({ error: "Missing required fields." }, 400, corsHeaders);
   }
 
-  const container = await getContainer();
-  const { resource } = await container.items.create(doc);
-  return jsonResponse(resource, 201, corsHeaders);
+  requests.push(doc);
+  return jsonResponse(doc, 201, corsHeaders);
 }
 
 async function handlePatchStatus(request, id, corsHeaders) {
@@ -90,18 +78,7 @@ async function handlePatchStatus(request, id, corsHeaders) {
     );
   }
 
-  const container = await getContainer();
-  const { resources } = await container.items
-    .query(
-      {
-        query: "SELECT * FROM c WHERE c.id = @id",
-        parameters: [{ name: "@id", value: id }]
-      },
-      { enableCrossPartitionQuery: true }
-    )
-    .fetchAll();
-
-  const item = resources[0];
+  const item = requests.find((request) => request.id === id);
   if (!item) {
     return jsonResponse({ error: "Request not found" }, 404, corsHeaders);
   }
@@ -112,9 +89,7 @@ async function handlePatchStatus(request, id, corsHeaders) {
   if (newStatus === "denied") item.denialReason = denialReason.trim();
   else delete item.denialReason;
 
-  const partitionKey = item.currentSite;
-  const { resource } = await container.item(item.id, partitionKey).replace(item);
-  return jsonResponse(resource, 200, corsHeaders);
+  return jsonResponse(item, 200, corsHeaders);
 }
 
 async function serveStatic(pathname) {

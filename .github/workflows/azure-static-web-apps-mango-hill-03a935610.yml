@@ -29,10 +29,29 @@ jobs:
         run: bun install
 
       - name: Start server smoke test
+        env:
+          PORT: 3000
         run: |
+          set -euo pipefail
+
           bun run start > /tmp/transfer-portal.log 2>&1 &
           SERVER_PID=$!
-          sleep 3
-          curl -f http://localhost:3000/ > /dev/null
-          kill $SERVER_PID
-          wait $SERVER_PID || true
+
+          cleanup() {
+            if kill -0 "$SERVER_PID" 2>/dev/null; then
+              kill "$SERVER_PID"
+              wait "$SERVER_PID" || true
+            fi
+          }
+          trap cleanup EXIT
+
+          for i in {1..20}; do
+            if curl -fsS "http://localhost:${PORT}/" > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "Server failed smoke test. Startup logs:"
+          cat /tmp/transfer-portal.log
+          exit 1

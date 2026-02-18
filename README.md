@@ -5,14 +5,14 @@ This project now runs as a Bun server (no Azure Functions runtime required).
 ## Prerequisites
 
 - [Bun](https://bun.sh/) installed
-- Cosmos DB connection string in environment variables
 
 ## Environment Variables
 
-- `COSMOS_CONNECTION_STRING` (required)
-- `COSMOS_DB` (optional, default: `transferPortal`)
-- `COSMOS_CONTAINER` (optional, default: `transferRequests`)
 - `PORT` (optional, default: `3000`)
+
+## Data Storage
+
+Requests are currently stored in memory on the server process. This means data is cleared whenever the app restarts. A persistent server DB can be wired in later without changing the API routes.
 
 ## Install
 
