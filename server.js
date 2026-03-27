@@ -1,24 +1,69 @@
 import crypto from "node:crypto";
 import { join, normalize } from "node:path";
+import { Database } from "bun:sqlite";
 
 const publicDir = join(import.meta.dir, "public");
 const VALID_STATUSES = ["received", "in-review", "approved", "denied"];
 const port = Number(process.env.PORT || 3000);
-const requests = [];
+
+// Initialize SQLite database
+const db = new Database("transfer-portal.db");
+
+// Create requests table if it doesn't exist
+db.run(`
+  CREATE TABLE IF NOT EXISTS requests (
+    id TEXT PRIMARY KEY,
+    email TEXT NOT NULL,
+    employeeName TEXT,
+    currentSite TEXT NOT NULL,
+    preferredSite TEXT NOT NULL,
+    preferredShift TEXT NOT NULL,
+    notes TEXT,
+    status TEXT NOT NULL DEFAULT 'received',
+    denialReason TEXT,
+    submittedAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL
+  )
+`);
+
+// Create index on status for faster filtering
+db.run(`CREATE INDEX IF NOT EXISTS idx_status ON requests(status)`);
+
+// Prepared statements for better performance
+const insertRequest = db.prepare(`
+  INSERT INTO requests (id, email, employeeName, currentSite, preferredSite, preferredShift, notes, status, submittedAt, updatedAt)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`);
+
+const getRequestById = db.prepare(`SELECT * FROM requests WHERE id = ?`);
+const getRequestsByStatus = db.prepare(`SELECT * FROM requests WHERE status = ? ORDER BY submittedAt DESC`);
+const getAllRequests = db.prepare(`SELECT * FROM requests ORDER BY submittedAt DESC`);
+
+const updateRequestStatus = db.prepare(`
+  UPDATE requests 
+  SET status = ?, updatedAt = ?, denialReason = ?
+  WHERE id = ?
+`);
+
+const deleteDeniedRequests = db.prepare(`DELETE FROM requests WHERE status = 'denied'`);
+
+const deleteOldApprovedRequests = db.prepare(
+  `DELETE FROM requests WHERE status = 'approved' AND updatedAt < ?`
+);
 
 function withCorsHeaders(origin) {
   return {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": origin || "*",
-    "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
+    "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type"
   };
 }
 
-function jsonResponse(body, status, headers = {}) {
+function jsonResponse(body, status, corsHeaders) {
   return new Response(JSON.stringify(body), {
     status,
-    headers
+    headers: corsHeaders
   });
 }
 
@@ -32,9 +77,10 @@ async function parseJson(request) {
 
 async function handleGetRequests(url, corsHeaders) {
   const status = url.searchParams.get("status");
-  const filtered = status ? requests.filter((request) => request.status === status) : requests;
-  const sorted = [...filtered].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
-  return jsonResponse(sorted, 200, corsHeaders);
+  const results = status 
+    ? getRequestsByStatus.all(status)
+    : getAllRequests.all();
+  return jsonResponse(results, 200, corsHeaders);
 }
 
 async function handlePostRequests(request, corsHeaders) {
@@ -58,8 +104,24 @@ async function handlePostRequests(request, corsHeaders) {
     return jsonResponse({ error: "Missing required fields." }, 400, corsHeaders);
   }
 
-  requests.push(doc);
-  return jsonResponse(doc, 201, corsHeaders);
+  try {
+    insertRequest.run(
+      doc.id,
+      doc.email,
+      doc.employeeName,
+      doc.currentSite,
+      doc.preferredSite,
+      doc.preferredShift,
+      doc.notes,
+      doc.status,
+      doc.submittedAt,
+      doc.updatedAt
+    );
+    return jsonResponse(doc, 201, corsHeaders);
+  } catch (error) {
+    console.error("Database insert failed:", error);
+    return jsonResponse({ error: "Failed to create request" }, 500, corsHeaders);
+  }
 }
 
 async function handlePatchStatus(request, id, corsHeaders) {
@@ -78,22 +140,30 @@ async function handlePatchStatus(request, id, corsHeaders) {
     );
   }
 
-  const item = requests.find((request) => request.id === id);
+  const item = getRequestById.get(id);
   if (!item) {
     return jsonResponse({ error: "Request not found" }, 404, corsHeaders);
   }
 
-  item.status = newStatus;
-  item.updatedAt = new Date().toISOString();
+  try {
+    updateRequestStatus.run(
+      newStatus,
+      new Date().toISOString(),
+      newStatus === "denied" ? denialReason.trim() : null,
+      id
+    );
 
-  if (newStatus === "denied") item.denialReason = denialReason.trim();
-  else delete item.denialReason;
-
-  return jsonResponse(item, 200, corsHeaders);
+    // Return updated item
+    const updatedItem = getRequestById.get(id);
+    return jsonResponse(updatedItem, 200, corsHeaders);
+  } catch (error) {
+    console.error("Database update failed:", error);
+    return jsonResponse({ error: "Failed to update request" }, 500, corsHeaders);
+  }
 }
 
 async function serveStatic(pathname) {
-  const normalizedPath = pathname === "/" ? "index.html" : pathname.slice(1);
+  const normalizedPath = pathname === "/" ? "app.html" : pathname.slice(1);
   const candidate = normalize(join(publicDir, normalizedPath));
 
   if (!candidate.startsWith(publicDir)) {
@@ -120,11 +190,34 @@ Bun.serve({
     const method = request.method;
     const corsHeaders = withCorsHeaders(request.headers.get("origin"));
 
+    // Debug logging
+    console.log(`${method} ${pathname}`);
+
     try {
+      if (pathname === "/api/requests/denied") {
+        if (method === "OPTIONS") return new Response("", { status: 204, headers: corsHeaders });
+        if (method === "DELETE") {
+          const result = deleteDeniedRequests.run();
+          return jsonResponse({ deleted: result.changes }, 200, corsHeaders);
+        }
+        return jsonResponse({ error: "Method not allowed" }, 405, corsHeaders);
+      }
+
+      if (pathname === "/api/requests/approved/old") {
+        if (method === "OPTIONS") return new Response("", { status: 204, headers: corsHeaders });
+        if (method === "DELETE") {
+          const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+          const result = deleteOldApprovedRequests.run(cutoff);
+          return jsonResponse({ deleted: result.changes }, 200, corsHeaders);
+        }
+        return jsonResponse({ error: "Method not allowed" }, 405, corsHeaders);
+      }
+
       if (pathname === "/api/requests") {
         if (method === "OPTIONS") return new Response("", { status: 204, headers: corsHeaders });
         if (method === "GET") return await handleGetRequests(url, corsHeaders);
         if (method === "POST") return await handlePostRequests(request, corsHeaders);
+        console.log(`Method ${method} not allowed for ${pathname}`);
         return jsonResponse({ error: "Method not allowed" }, 405, corsHeaders);
       }
 

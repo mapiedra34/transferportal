@@ -6,5 +6,9 @@
   "scripts": {
     "dev": "bun --watch server.js",
     "start": "bun server.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "node-adodb": "^5.0.3"
   }
 }
