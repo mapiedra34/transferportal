@@ -560,6 +560,7 @@
                 <h3>Approved</h3>
                 <span class="result-count" id="archiveApprovedCount"></span>
               </div>
+              <button id="clearArchivedApprovedBtn" class="chip denied" style="margin-left:auto;font-size:12px;padding:5px 10px;">Clear</button>
             </div>
             <div class="archive-list" id="archiveApprovedList"></div>
           </div>
@@ -572,6 +573,7 @@
                 <h3>Denied</h3>
                 <span class="result-count" id="archiveDeniedCount"></span>
               </div>
+              <button id="clearArchivedDeniedBtn" class="chip denied" style="margin-left:auto;font-size:12px;padding:5px 10px;">Clear</button>
             </div>
             <div class="archive-list" id="archiveDeniedList"></div>
           </div>
@@ -1090,6 +1092,28 @@
           if (e.key === "Enter") {
             e.preventDefault();
             loadArchivedRequests(e.target.value);
+          }
+        });
+        document.getElementById("clearArchivedApprovedBtn").addEventListener("click", async () => {
+          if (!confirm("Permanently delete all archived approved requests?")) return;
+          try {
+            const res = await fetch(`${API_BASE}/requests/archived-approved`, { method: "DELETE" });
+            if (!res.ok) { alert("Failed to delete."); return; }
+            loadArchivedRequests(document.getElementById("archiveSearchInput").value);
+          } catch (err) {
+            console.error("Failed to clear archived approved", err);
+            alert("Failed to delete archived approved requests.");
+          }
+        });
+        document.getElementById("clearArchivedDeniedBtn").addEventListener("click", async () => {
+          if (!confirm("Permanently delete all archived denied requests?")) return;
+          try {
+            const res = await fetch(`${API_BASE}/requests/archived-denied`, { method: "DELETE" });
+            if (!res.ok) { alert("Failed to delete."); return; }
+            loadArchivedRequests(document.getElementById("archiveSearchInput").value);
+          } catch (err) {
+            console.error("Failed to clear archived denied", err);
+            alert("Failed to delete archived denied requests.");
           }
         });
         archivedInitialized = true;

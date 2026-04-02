@@ -124,6 +124,28 @@ app.post("/api/requests/approved/archive", async (req, res) => {
   }
 });
 
+// DELETE /api/requests/archived-approved - Delete all archived-approved requests
+app.delete("/api/requests/archived-approved", async (req, res) => {
+  try {
+    const result = await pool.query("DELETE FROM requests WHERE status = 'archived-approved'");
+    res.json({ deleted: result.rowCount });
+  } catch (error) {
+    console.error("Database delete failed:", error);
+    res.status(500).json({ error: "Failed to delete archived approved requests" });
+  }
+});
+
+// DELETE /api/requests/archived-denied - Delete all archived-denied requests
+app.delete("/api/requests/archived-denied", async (req, res) => {
+  try {
+    const result = await pool.query("DELETE FROM requests WHERE status = 'archived-denied'");
+    res.json({ deleted: result.rowCount });
+  } catch (error) {
+    console.error("Database delete failed:", error);
+    res.status(500).json({ error: "Failed to delete archived denied requests" });
+  }
+});
+
 // POST /api/requests - Create a new request
 app.post("/api/requests", async (req, res) => {
   try {
