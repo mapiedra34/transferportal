@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transfer Portal</title>
+  <style>
+    /* ── Base / Design tokens ── */
+    :root {
+      --bg: #f6f8fc;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --text: #0f172a;
+      --accent: #2563eb;
+      --accent-2: #0ea5e9;
+      --border: #d7deea;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.12), transparent 35%),
+                  radial-gradient(circle at 80% 30%, rgba(14, 165, 233, 0.14), transparent 38%),
+                  radial-gradient(circle at 50% 80%, rgba(34, 197, 94, 0.1), transparent 32%),
+                  var(--bg);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; }
+
+    /* ── View toggling ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── Shared layout ── */
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+      background: transparent;
+    }
+    .page.narrow { max-width: 520px; }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .brand { display: flex; gap: 12px; align-items: center; }
+    .logo {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid; place-items: center;
+      font-weight: 700; color: #f8fbff;
+      box-shadow: 0 12px 28px rgba(37, 99, 235, 0.25);
+    }
+    .title { font-size: 18px; font-weight: 700; }
+    .subtitle { color: var(--muted); font-size: 14px; }
+
+    .content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(4px);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0;
+    }
+    h1 { margin: 4px 0 0; font-size: 24px; }
+    h3 { margin: 0; font-size: 18px; }
+    h4 { margin: 4px 0 0; }
+    .hint { color: var(--muted); font-size: 13px; }
+
+    /* ── Forms ── */
+    .form { display: grid; gap: 14px; margin-top: 12px; }
+    .field { display: grid; gap: 6px; font-weight: 600; }
+    .field input, .field select, .field textarea {
+      width: 100%; border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 12px; background: #f3f5fb;
+      color: var(--text); font-size: 15px;
+    }
+    .field select { appearance: none; background-color: #f3f5fb; color: var(--text); }
+    .field select option { background: #f3f5fb; color: var(--text); }
+    .field textarea { resize: vertical; }
+
+    .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border: none; color: #f8fbff; padding: 12px 18px;
+      border-radius: 12px; font-weight: 700; cursor: pointer;
+      box-shadow: var(--shadow);
+    }
+    .ghost {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+      padding: 10px 14px; border-radius: 10px; cursor: pointer;
+    }
+    .fine-print { font-size: 12px; color: var(--muted); }
+
+    /* ── Board (Manager) ── */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px; margin-top: 16px;
+    }
+    .column {
+      background: #f8fbff;
+      border: 1px solid #dce5f3;
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+    }
+    .column-header { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot.received   { background: var(--accent-2); }
+    .dot.in-review  { background: var(--accent); }
+    .dot.approved   { background: var(--success); }
+    .dot.denied     { background: var(--danger); }
+
+    .list { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+
+    .request-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      display: grid; gap: 8px;
+      width: 100%; max-width: 360px;
+      margin: 0 auto; box-sizing: border-box;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    }
+    .request-top {
+      display: flex; justify-content: space-between;
+      gap: 10px; align-items: flex-start; flex-wrap: wrap;
+    }
+    .request-card--final { padding: 10px 12px; }
+    .request-card--final .request-top { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .request-card--final .timestamps { font-size: 11px; opacity: 0.75; }
+    .request-card--final .notes { display: none; }
+
+    .request-card--collapsed { cursor: pointer; padding: 8px 12px; }
+    .request-card--collapsed .collapsible-details { display: none; }
+    .request-card--collapsed .requester::after { content: ' ▸'; font-size: 10px; opacity: 0.5; }
+    .request-card--expanded .requester::after { content: ' ▾'; font-size: 10px; opacity: 0.5; }
+    .collapsible-details { margin-top: 6px; }
+
+    .older-section { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
+    .older-toggle {
+      background: transparent; border: 1px solid var(--border); border-radius: 8px;
+      padding: 6px 12px; font-size: 12px; font-weight: 600; color: var(--muted);
+      cursor: pointer; width: 100%; text-align: left;
+    }
+    .older-toggle:hover { background: #f0f3fa; }
+    .older-toggle span { opacity: 0.7; }
+
+    .requester { font-size: 12px; }
+    .route { margin: 4px 0; }
+    .timestamps { text-align: right; font-size: 11px; line-height: 1.2; min-width: 120px; }
+
+    .status-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip {
+      border: 1px solid var(--border);
+      background: transparent; color: var(--text);
+      border-radius: 999px; padding: 8px 12px;
+      cursor: pointer; font-weight: 700;
+    }
+    .chip.in-review { border-color: var(--accent); }
+    .chip.approved  { border-color: var(--success); color: var(--success); }
+    .chip.denied    { border-color: var(--danger); color: var(--danger); }
+
+    .notes { color: var(--muted); margin: 0; }
+    .hidden { display: none; }
+
+    /* ── Deny modal ── */
+    .modal {
+      position: fixed; inset: 0;
+      display: none; align-items: center; justify-content: center;
+      z-index: 40;
+    }
+    .modal.visible { display: flex; }
+    .modal-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.25); }
+    .modal-dialog {
+      position: relative;
+      background: var(--card); border-radius: 14px;
+      padding: 18px 20px; border: 1px solid var(--border);
+      max-width: 420px; width: 100%;
+      box-shadow: var(--shadow); z-index: 41;
+    }
+    .modal-dialog h3 { margin-top: 0; margin-bottom: 8px; }
+    .modal-dialog textarea {
+      width: 100%; margin-top: 8px; padding: 8px;
+      border-radius: 8px; border: 1px solid var(--border);
+      background: #f3f5fb; color: var(--text); resize: vertical;
+    }
+    .modal-actions { margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px; }
+    .modal-actions .secondary {
+      background: transparent; border: 1px solid var(--border);
+      padding: 6px 12px; border-radius: 999px; cursor: pointer;
+    }
+    .modal-actions .danger {
+      background: transparent; border: 1px solid var(--danger);
+      color: var(--danger); padding: 6px 12px;
+      border-radius: 999px; cursor: pointer;
+    }
+
+    /* ── Login ── */
+    .login-container {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .login-card {
+      background: white; padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      width: 100%; max-width: 400px; margin: 1rem;
+    }
+    .login-header { text-align: center; margin-bottom: 2rem; }
+    .login-logo {
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1rem;
+    }
+    .login-logo img {
+      max-width: 280px; height: auto;
+    }
+    .login-title { font-size: 24px; font-weight: 600; color: #1a1a1a; margin: 0 0 0.5rem; }
+    .login-subtitle { font-size: 14px; color: #666; }
+    .login-form { display: flex; flex-direction: column; gap: 1rem; }
+    .login-field { display: flex; flex-direction: column; gap: 0.5rem; }
+    .login-field label { font-size: 14px; font-weight: 500; color: #333; }
+    .login-field input, .login-field select {
+      padding: 0.75rem; border: 1px solid #ddd;
+      border-radius: 6px; font-size: 14px; transition: border-color 0.2s;
+    }
+    .login-field input:focus, .login-field select:focus { outline: none; border-color: #667eea; }
+    .login-btn {
+      padding: 0.875rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; border: none; border-radius: 6px;
+      font-size: 16px; font-weight: 600; cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s; margin-top: 0.5rem;
+    }
+    .login-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+    .login-btn:active { transform: translateY(0); }
+    .dev-note {
+      margin-top: 1.5rem; padding: 0.75rem;
+      background: #fff3cd; border: 1px solid #ffc107;
+      border-radius: 6px; font-size: 12px; color: #856404;
+    }
+    .logout-btn {
+      padding: 0.5rem 1rem; background: #f44336; color: white;
+      border: none; border-radius: 4px; cursor: pointer; font-size: 14px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 720px) {
+      .topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .card-header { flex-direction: column; align-items: flex-start; }
+      .request-top { flex-direction: column; }
+      .timestamps { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════ LOGIN VIEW ═══════════════ -->
+  <div id="loginView" class="view">
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-header">
+          <div class="login-logo"><img src="media/SAMA.png" alt="SAMA Logo"></div>
+          <p class="login-subtitle">Sign in to continue</p>
+        </div>
+        <form id="loginForm" class="login-form">
+          <div class="login-field">
+            <label for="loginEmail">Email</label>
+            <input type="email" id="loginEmail" placeholder="you@microsoft.com" required>
+          </div>
+          <div class="login-field">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" placeholder="••••••••" required>
+          </div>
+          <div class="login-field">
+            <label for="loginRole">Role (for testing)</label>
+            <select id="loginRole" required>
+              <option value="">Select your role</option>
+              <option value="technician">Technician</option>
+              <option value="manager">Manager</option>
+            </select>
+          </div>
+          <button type="submit" class="login-btn">Sign In</button>
+          <div class="dev-note">
+            <strong>Development Mode:</strong> Role selector shown for testing.
+            This will be replaced with actual authentication that determines role from backend.
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TECHNICIAN VIEW ═══════════════ -->
+  <div id="technicianView" class="view">
+    <div class="page">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo">TP</div>
+          <div>
+            <div class="title">Transfer Portal</div>
+            <div class="subtitle">Technician request</div>
+          </div>
+        </div>
+        <button class="logout-btn" id="techLogoutBtn">Logout</button>
+      </header>
+      <main class="content">
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p id="greeting" class="eyebrow"></p>
+              <h1>Submit a transfer request</h1>
+            </div>
+            <div class="hint">Use your work email so managers can reach you.</div>
+          </div>
+          <form id="requestForm" class="form">
+            <label class="field">
+              <span>Work email</span>
+              <input type="email" id="techEmail" name="email" placeholder="you@microsoft.com" required>
+            </label>
+            <label class="field">
+              <span>Current site</span>
+              <select id="currentSite" name="currentSite" required></select>
+            </label>
+            <label class="field">
+              <span>Preferred site</span>
+              <select id="preferredSite" name="preferredSite" required></select>
+            </label>
+            <label class="field">
+              <span>Preferred shift</span>
+              <select id="preferredShift" name="preferredShift" required></select>
+            </label>
+            <label class="field">
+              <span>Notes (optional)</span>
+              <textarea id="notes" name="notes" rows="3" placeholder="Any context that helps your manager review"></textarea>
+            </label>
+            <div class="actions">
+              <button type="submit" class="primary">Submit request</button>
+              <div class="fine-print">Requests are time-stamped and visible to managers.</div>
+            </div>
+          </form>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ═══════════════ MANAGER VIEW ═══════════════ -->
+  <div id="managerView" class="view">
+    <div class="page">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo">TP</div>
+          <div>
+            <div class="title">Transfer Portal</div>
+            <div class="subtitle">Manager dashboard</div>
+          </div>
+        </div>
+        <button class="logout-btn" id="mgrLogoutBtn">Logout</button>
+      </header>
+      <main class="content">
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Manager view</p>
+              <h1>Review transfer requests</h1>
+            </div>
+            <div class="hint">Status moves requests into buckets, newest first.</div>
+          </div>
+          <div class="board">
+            <div class="column" data-status="received">
+              <div class="column-header">
+                <span class="dot received"></span>
+                <div>
+                  <h3>Received</h3>
+                  <p class="eyebrow" id="receivedCount">0</p>
+                </div>
+              </div>
+              <div class="list" id="receivedList"></div>
+            </div>
+            <div class="column" data-status="in-review">
+              <div class="column-header">
+                <span class="dot in-review"></span>
+                <div>
+                  <h3>In Review</h3>
+                  <p class="eyebrow" id="inReviewCount">0</p>
+                </div>
+              </div>
+              <div class="list" id="inReviewList"></div>
+            </div>
+            <div class="column" data-status="approved">
+              <div class="column-header">
+                <span class="dot approved"></span>
+                <div>
+                  <h3>Approved</h3>
+                  <p class="eyebrow" id="approvedCount">0</p>
+                </div>
+              </div>
+              <div class="list" id="approvedList"></div>
+              <div id="olderApprovedSection" class="older-section hidden">
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <button id="olderApprovedToggle" class="older-toggle" style="flex:1;">Older Approved <span id="olderApprovedCount">0</span> ▸</button>
+                  <button id="clearOldApprovedBtn" class="chip denied" style="font-size:11px;padding:4px 10px;">Clear</button>
+                </div>
+                <div class="list hidden" id="olderApprovedList"></div>
+              </div>
+            </div>
+            <div class="column" data-status="denied">
+              <div class="column-header">
+                <span class="dot denied"></span>
+                <div>
+                  <h3>Denied</h3>
+                  <p class="eyebrow" id="deniedCount">0</p>
+                </div>
+                <button id="clearDeniedBtn" class="chip denied" style="margin-left:auto;font-size:12px;padding:5px 10px;">Clear</button>
+              </div>
+              <div class="list" id="deniedList"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <template id="requestCardTemplate">
+      <article class="request-card">
+        <div class="request-top">
+          <div>
+            <p class="eyebrow requester"></p>
+            <h4 class="route"></h4>
+            <p class="eyebrow shift"></p>
+          </div>
+          <div class="timestamps">
+            <p class="eyebrow submitted"></p>
+            <p class="eyebrow updated"></p>
+          </div>
+        </div>
+        <p class="notes"></p>
+        <div class="status-actions">
+          <button class="chip in-review" data-status="in-review">In Review</button>
+          <button class="chip approved" data-status="approved">Approve</button>
+          <button class="chip denied" data-status="denied">Deny</button>
+        </div>
+      </article>
+    </template>
+
+    <!-- Deny reason modal -->
+    <div id="denyModal" class="modal">
+      <div class="modal-backdrop"></div>
+      <div class="modal-dialog">
+        <h3>Reason for denial</h3>
+        <p class="eyebrow">Please provide a reason. This will appear with the request.</p>
+        <textarea id="denyReasonInput" rows="3" placeholder="Enter reason..." required></textarea>
+        <div class="modal-actions">
+          <button type="button" id="denyCancelBtn" class="secondary">Cancel</button>
+          <button type="button" id="denyConfirmBtn" class="danger">Confirm denial</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ══════════════════════════════════════════════
+       SHARED
+       ══════════════════════════════════════════════ */
+    const API_BASE = window.location.origin + "/api";
+    const REQUESTS_URL = `${API_BASE}/requests`;
+
+    const siteOptions  = ["SN", "SAT", "Rio Medina"];
+    const shiftOptions = [
+      "A Side Days", "B Side Days",
+      "A Side Nights", "B Side Nights",
+      "STRIKE Team"
+    ];
+
+    function formatDate(timestamp) {
+      const d = typeof timestamp === "string"
+        ? new Date(timestamp)
+        : new Date(Number(timestamp));
+      if (Number.isNaN(d.getTime())) return "—";
+      return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    }
+
+    /* ── View Router ── */
+    function showView(viewId) {
+      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+      const target = document.getElementById(viewId);
+      if (target) target.classList.add("active");
+    }
+
+    function logout() {
+      sessionStorage.removeItem("userEmail");
+      sessionStorage.removeItem("userRole");
+      showView("loginView");
+    }
+
+    function route() {
+      const role = sessionStorage.getItem("userRole");
+      if (role === "manager") {
+        showView("managerView");
+        initManager();
+      } else if (role === "technician") {
+        showView("technicianView");
+        initTechnician();
+      } else {
+        showView("loginView");
+      }
+    }
+
+    /* ══════════════════════════════════════════════
+       LOGIN
+       ══════════════════════════════════════════════ */
+    document.getElementById("loginForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const role  = document.getElementById("loginRole").value;
+      const email = document.getElementById("loginEmail").value;
+      sessionStorage.setItem("userEmail", email);
+      sessionStorage.setItem("userRole", role);
+      route();
+    });
+
+    /* ══════════════════════════════════════════════
+       TECHNICIAN
+       ══════════════════════════════════════════════ */
+    let techInitialized = false;
+
+    function populateSelect(selectEl, options) {
+      selectEl.innerHTML = "";
+      options.forEach((option) => {
+        const opt = document.createElement("option");
+        opt.value = option;
+        opt.textContent = option;
+        selectEl.appendChild(opt);
+      });
+    }
+
+    function setGreeting() {
+      const hour = new Date().getHours();
+      const salutation = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+      document.getElementById("greeting").textContent =
+        `${salutation}, please complete your transfer details`;
+    }
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      const form = document.getElementById("requestForm");
+      const formData = new FormData(form);
+
+      const payload = {
+        email: formData.get("email")?.trim().toLowerCase(),
+        currentSite: formData.get("currentSite"),
+        preferredSite: formData.get("preferredSite"),
+        preferredShift: formData.get("preferredShift"),
+        notes: formData.get("notes")?.trim() || ""
+      };
+
+      if (!payload.email || !payload.currentSite || !payload.preferredSite || !payload.preferredShift) {
+        alert("Please fill out all required fields.");
+        return;
+      }
+
+      try {
+        const res = await fetch(REQUESTS_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error("Failed to submit request", err);
+          alert("Something went wrong submitting your request. Please try again or contact your manager.");
+          return;
+        }
+        await res.json();
+        alert("Your transfer request has been submitted.");
+        form.reset();
+        populateSelect(document.getElementById("currentSite"), siteOptions);
+        populateSelect(document.getElementById("preferredSite"), siteOptions);
+        populateSelect(document.getElementById("preferredShift"), shiftOptions);
+        const storedEmail = sessionStorage.getItem("userEmail");
+        if (storedEmail) {
+          const emailEl = document.getElementById("techEmail");
+          emailEl.value = storedEmail;
+          emailEl.readOnly = true;
+          emailEl.style.opacity = "0.6";
+          emailEl.style.cursor = "not-allowed";
+        }
+      } catch (err) {
+        console.error("Network error submitting request", err);
+        alert("Network error submitting your request. Please check your connection and try again.");
+      }
+    }
+
+    function initTechnician() {
+      setGreeting();
+      populateSelect(document.getElementById("currentSite"), siteOptions);
+      populateSelect(document.getElementById("preferredSite"), siteOptions);
+      populateSelect(document.getElementById("preferredShift"), shiftOptions);
+
+      const storedEmail = sessionStorage.getItem("userEmail");
+      if (storedEmail) {
+        const emailEl = document.getElementById("techEmail");
+        emailEl.value = storedEmail;
+        emailEl.readOnly = true;
+        emailEl.style.opacity = "0.6";
+        emailEl.style.cursor = "not-allowed";
+      }
+
+      if (!techInitialized) {
+        document.getElementById("requestForm").addEventListener("submit", handleSubmit);
+        document.getElementById("techLogoutBtn").addEventListener("click", logout);
+        techInitialized = true;
+      }
+    }
+
+    /* ══════════════════════════════════════════════
+       MANAGER
+       ══════════════════════════════════════════════ */
+    let mgrInitialized = false;
+    let pendingDenyId = null;
+
+    const columns = {
+      received:    () => document.getElementById("receivedList"),
+      "in-review": () => document.getElementById("inReviewList"),
+      approved:    () => document.getElementById("approvedList"),
+      denied:      () => document.getElementById("deniedList")
+    };
+    const countEls = {
+      received:    () => document.getElementById("receivedCount"),
+      "in-review": () => document.getElementById("inReviewCount"),
+      approved:    () => document.getElementById("approvedCount"),
+      denied:      () => document.getElementById("deniedCount")
+    };
+
+    function openDenyModal(id) {
+      pendingDenyId = id;
+      const input = document.getElementById("denyReasonInput");
+      input.value = "";
+      document.getElementById("denyModal").classList.add("visible");
+      input.focus();
+    }
+
+    function closeDenyModal() {
+      pendingDenyId = null;
+      document.getElementById("denyModal").classList.remove("visible");
+    }
+
+    function buildRequestCard(req) {
+      const template = document.getElementById("requestCardTemplate");
+      const fragment = template.content.cloneNode(true);
+      const card = fragment.querySelector(".request-card");
+
+      const requesterEl = fragment.querySelector(".requester");
+      const routeEl     = fragment.querySelector(".route");
+      const shiftEl     = fragment.querySelector(".shift");
+      const submittedEl = fragment.querySelector(".submitted");
+      const updatedEl   = fragment.querySelector(".updated");
+      const notesEl     = fragment.querySelector(".notes");
+      const actions     = fragment.querySelector(".status-actions");
+      const btnInReview = actions.querySelector('[data-status="in-review"]');
+      const btnApprove  = actions.querySelector('[data-status="approved"]');
+      const btnDeny     = actions.querySelector('[data-status="denied"]');
+
+      requesterEl.textContent = req.email || req.employeeName || "Unknown requester";
+      routeEl.textContent = `${req.currentSite} → ${req.preferredSite}`;
+      shiftEl.textContent = req.preferredShift || "";
+      submittedEl.textContent = `Submitted: ${req.submittedAt ? formatDate(req.submittedAt) : "—"}`;
+      updatedEl.textContent   = `Updated: ${req.updatedAt ? formatDate(req.updatedAt) : "—"}`;
+      notesEl.textContent = req.notes || "";
+      card.dataset.id = req.id;
+
+      if (req.status === "received") {
+        btnApprove.remove();
+        btnDeny.remove();
+        btnInReview.addEventListener("click", () => updateStatus(req.id, "in-review"));
+      } else if (req.status === "in-review") {
+        btnInReview.remove();
+        btnApprove.addEventListener("click", () => updateStatus(req.id, "approved"));
+        btnDeny.addEventListener("click", () => openDenyModal(req.id));
+      } else {
+        actions.remove();
+        card.classList.add("request-card--final");
+        const name = req.employeeName || req.email || "Employee";
+        if (req.status === "approved") {
+          const approvedName = req.email || req.employeeName || "Employee";
+          requesterEl.textContent = approvedName;
+
+          // Wrap detail elements in a collapsible container
+          const details = document.createElement("div");
+          details.className = "collapsible-details";
+          routeEl.textContent = `${req.currentSite} → ${req.preferredSite}`;
+          shiftEl.textContent = req.preferredShift || "";
+          submittedEl.textContent = `Submitted: ${req.submittedAt ? formatDate(req.submittedAt) : "—"}`;
+          submittedEl.style.display = "";
+          details.appendChild(routeEl);
+          details.appendChild(shiftEl);
+          details.appendChild(submittedEl);
+          if (req.notes) {
+            notesEl.textContent = req.notes;
+            notesEl.style.display = "";
+            details.appendChild(notesEl);
+          }
+          card.appendChild(details);
+
+          card.classList.add("request-card--collapsed");
+          card.addEventListener("click", () => {
+            const collapsed = card.classList.toggle("request-card--collapsed");
+            card.classList.toggle("request-card--expanded", !collapsed);
+          });
+        } else if (req.status === "denied") {
+          requesterEl.textContent = `${name} — Transfer request denied`;
+          const reason = req.denialReason || "No reason provided.";
+          notesEl.textContent = reason;
+          notesEl.style.display = "none";
+          notesEl.classList.add("denial-reason");
+          routeEl.textContent = "";
+          shiftEl.textContent = "";
+          requesterEl.style.cursor = "pointer";
+          requesterEl.addEventListener("click", () => {
+            const hidden = notesEl.style.display === "none";
+            notesEl.style.display = hidden ? "block" : "none";
+          });
+        }
+        updatedEl.style.display = "none";
+      }
+      return fragment;
+    }
+
+    async function fetchRequestsByStatus(status) {
+      const url = `${REQUESTS_URL}?status=${encodeURIComponent(status)}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error("Failed to fetch requests", err);
+        throw new Error("Failed to fetch requests");
+      }
+      return res.json();
+    }
+
+    async function updateStatus(id, newStatus, denialReason) {
+      try {
+        const body = { status: newStatus };
+        if (newStatus === "denied" && denialReason) body.denialReason = denialReason;
+
+        const res = await fetch(`${REQUESTS_URL}/${encodeURIComponent(id)}/status`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error("Failed to update status", err);
+          alert(err.error || "Failed to update status. Please try again.");
+          return;
+        }
+        await res.json();
+        await renderBoard();
+      } catch (err) {
+        console.error("Network error updating status", err);
+        alert("Network error updating status. Please check your connection.");
+      }
+    }
+
+    async function renderBoard() {
+      Object.keys(columns).forEach(k => { columns[k]().innerHTML = ""; });
+      Object.keys(countEls).forEach(k => { countEls[k]().textContent = "0"; });
+
+      try {
+        const [received, inReview, approved, denied] = await Promise.all([
+          fetchRequestsByStatus("received"),
+          fetchRequestsByStatus("in-review"),
+          fetchRequestsByStatus("approved"),
+          fetchRequestsByStatus("denied")
+        ]);
+        const buckets = { received, "in-review": inReview, approved: [], denied };
+
+        // Split approved into recent (< 7 days) and older (>= 7 days)
+        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const recentApproved = [];
+        const olderApproved = [];
+        approved.forEach(req => {
+          const approvedAt = new Date(req.updatedAt).getTime();
+          if (approvedAt >= sevenDaysAgo) recentApproved.push(req);
+          else olderApproved.push(req);
+        });
+
+        buckets.approved = recentApproved;
+        countEls.approved().textContent = approved.length.toString();
+
+        // Render recent approved
+        recentApproved.forEach(req => columns.approved().appendChild(buildRequestCard(req)));
+
+        // Render older approved section
+        const olderSection = document.getElementById("olderApprovedSection");
+        const olderList = document.getElementById("olderApprovedList");
+        const olderCount = document.getElementById("olderApprovedCount");
+        olderList.innerHTML = "";
+        if (olderApproved.length > 0) {
+          olderSection.classList.remove("hidden");
+          olderCount.textContent = olderApproved.length;
+          olderApproved.forEach(req => olderList.appendChild(buildRequestCard(req)));
+        } else {
+          olderSection.classList.add("hidden");
+        }
+
+        // Render other columns
+        Object.entries(buckets).forEach(([status, list]) => {
+          if (status === "approved") return; // already handled
+          countEls[status]().textContent = list.length.toString();
+          list.forEach(req => columns[status]().appendChild(buildRequestCard(req)));
+        });
+      } catch (err) {
+        console.error("Error rendering board", err);
+        alert("Failed to load requests from the server.");
+      }
+    }
+
+    function initManager() {
+      renderBoard();
+
+      if (!mgrInitialized) {
+        document.getElementById("denyCancelBtn").addEventListener("click", closeDenyModal);
+        document.getElementById("denyConfirmBtn").addEventListener("click", async () => {
+          const reason = document.getElementById("denyReasonInput").value.trim();
+          if (!reason) { alert("Please provide a reason for denial."); return; }
+          const id = pendingDenyId;
+          if (!id) { closeDenyModal(); return; }
+          await updateStatus(id, "denied", reason);
+          closeDenyModal();
+        });
+        document.getElementById("denyModal").addEventListener("click", (e) => {
+          if (e.target === document.getElementById("denyModal")) closeDenyModal();
+        });
+        document.getElementById("olderApprovedToggle").addEventListener("click", () => {
+          const list = document.getElementById("olderApprovedList");
+          const btn = document.getElementById("olderApprovedToggle");
+          const count = document.getElementById("olderApprovedCount");
+          const isHidden = list.classList.toggle("hidden");
+          btn.innerHTML = `Older Approved <span>${count.textContent}</span> ${isHidden ? '▸' : '▾'}`;
+        });
+        document.getElementById("clearDeniedBtn").addEventListener("click", async () => {
+          if (!confirm("Clear all denied requests?")) return;
+          try {
+            await fetch(`${API_BASE}/requests/denied`, { method: "DELETE" });
+            renderBoard();
+          } catch (err) {
+            console.error("Failed to clear denied", err);
+            alert("Failed to clear denied requests.");
+          }
+        });
+        document.getElementById("clearOldApprovedBtn").addEventListener("click", async () => {
+          if (!confirm("Clear all approved requests older than 7 days?")) return;
+          try {
+            await fetch(`${API_BASE}/requests/approved/old`, { method: "DELETE" });
+            renderBoard();
+          } catch (err) {
+            console.error("Failed to clear old approved", err);
+            alert("Failed to clear old approved requests.");
+          }
+        });
+        document.getElementById("mgrLogoutBtn").addEventListener("click", logout);
+        mgrInitialized = true;
+      }
+    }
+
+    /* ══════════════════════════════════════════════
+       BOOT
+       ══════════════════════════════════════════════ */
+    document.addEventListener("DOMContentLoaded", route);
+  </script>
+</body>
+</html>
