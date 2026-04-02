@@ -59,7 +59,6 @@ async function initializeDatabase() {
 }
 
 app.use(express.json());
-app.use(express.static(publicDir));
 
 // CORS middleware
 app.use((req, res, next) => {
@@ -202,7 +201,10 @@ app.delete("/api/requests/approved/old", async (req, res) => {
   }
 });
 
-// Serve static files (fallback for frontend routes)
+// Serve static files
+app.use(express.static(publicDir));
+
+// Fallback for SPA routing
 app.use((req, res, next) => {
   const normalizedPath = req.path === "/" ? "app.html" : req.path.slice(1);
   const candidate = normalize(join(publicDir, normalizedPath));
