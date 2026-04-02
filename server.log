@@ -1,0 +1,7 @@
+
+> transfer-portal@1.0.0 start
+> node server.js
+
+Γùç injecting env (6) from .env // tip: Γùê encrypted .env [www.dotenvx.com]
+Database schema initialized
+Transfer Portal server running on http://localhost:3000
