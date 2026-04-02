@@ -271,12 +271,49 @@
       border: none; border-radius: 4px; cursor: pointer; font-size: 14px;
     }
 
+    /* ── Archive page ── */
+    .search-bar {
+      display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;
+    }
+    .search-bar input {
+      flex: 1; min-width: 200px; padding: 12px; border-radius: 10px;
+      border: 1px solid var(--border); background: #f3f5fb;
+      color: var(--text); font-size: 15px;
+    }
+    .search-bar button {
+      padding: 12px 18px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #f8fbff; font-weight: 700; cursor: pointer;
+      box-shadow: var(--shadow);
+    }
+    .archive-list { display: flex; flex-direction: column; gap: 12px; }
+    .archive-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+      display: grid; gap: 6px;
+    }
+    .archive-card .archive-email { font-weight: 700; font-size: 14px; }
+    .archive-card .archive-route { font-size: 14px; }
+    .archive-card .archive-reason { color: var(--danger); font-size: 13px; margin: 4px 0 0; }
+    .archive-card .archive-dates { font-size: 11px; color: var(--muted); }
+    .archive-empty { color: var(--muted); text-align: center; padding: 40px 0; font-size: 15px; }
+    .nav-link {
+      background: transparent; color: var(--accent); border: 1px solid var(--accent);
+      padding: 8px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13px;
+      text-decoration: none;
+    }
+    .nav-link:hover { background: rgba(37, 99, 235, 0.08); }
+    .topbar-actions { display: flex; gap: 10px; align-items: center; }
+    .result-count { font-size: 13px; color: var(--muted); }
+
     /* ── Responsive ── */
     @media (max-width: 720px) {
       .topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
       .card-header { flex-direction: column; align-items: flex-start; }
       .request-top { flex-direction: column; }
       .timestamps { text-align: left; }
+      .search-bar { flex-direction: column; }
     }
   </style>
 </head>
@@ -381,7 +418,10 @@
             <div class="subtitle">Manager dashboard</div>
           </div>
         </div>
-        <button class="logout-btn" id="mgrLogoutBtn">Logout</button>
+        <div class="topbar-actions">
+          <button class="nav-link" id="mgrArchiveLink">📦 Archived</button>
+          <button class="logout-btn" id="mgrLogoutBtn">Logout</button>
+        </div>
       </header>
       <main class="content">
         <section class="card">
@@ -425,10 +465,10 @@
               <div id="olderApprovedSection" class="older-section hidden">
                 <div style="display:flex;gap:6px;align-items:center;">
                   <button id="olderApprovedToggle" class="older-toggle" style="flex:1;">Older Approved <span id="olderApprovedCount">0</span> ▸</button>
-                  <button id="clearOldApprovedBtn" class="chip denied" style="font-size:11px;padding:4px 10px;">Clear</button>
                 </div>
                 <div class="list hidden" id="olderApprovedList"></div>
               </div>
+              <button id="archiveApprovedBtn" class="chip approved" style="font-size:12px;padding:5px 10px;margin-top:10px;border-color:var(--success);color:var(--success);">Archive All Approved</button>
             </div>
             <div class="column" data-status="denied">
               <div class="column-header">
@@ -437,7 +477,7 @@
                   <h3>Denied</h3>
                   <p class="eyebrow" id="deniedCount">0</p>
                 </div>
-                <button id="clearDeniedBtn" class="chip denied" style="margin-left:auto;font-size:12px;padding:5px 10px;">Clear</button>
+                <button id="archiveDeniedBtn" class="chip denied" style="margin-left:auto;font-size:12px;padding:5px 10px;">Archive</button>
               </div>
               <div class="list" id="deniedList"></div>
             </div>
@@ -480,6 +520,63 @@
           <button type="button" id="denyConfirmBtn" class="danger">Confirm denial</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ ARCHIVED VIEW ═══════════════ -->
+  <div id="archivedView" class="view">
+    <div class="page">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo">TP</div>
+          <div>
+            <div class="title">Transfer Portal</div>
+            <div class="subtitle">Archived requests</div>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="nav-link" id="archiveBackBtn">← Back to Dashboard</button>
+          <button class="logout-btn" id="archiveLogoutBtn">Logout</button>
+        </div>
+      </header>
+      <main class="content">
+        <section class="card" style="grid-column: 1 / -1;">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Archive</p>
+              <h1>Archived Requests</h1>
+            </div>
+          </div>
+          <div class="search-bar">
+            <input type="text" id="archiveSearchInput" placeholder="Search by email..." autocomplete="off">
+            <button id="archiveSearchBtn">Search</button>
+          </div>
+
+          <!-- Approved Section -->
+          <div style="margin-top:16px;">
+            <div class="column-header" style="margin-bottom:10px;">
+              <span class="dot approved"></span>
+              <div>
+                <h3>Approved</h3>
+                <span class="result-count" id="archiveApprovedCount"></span>
+              </div>
+            </div>
+            <div class="archive-list" id="archiveApprovedList"></div>
+          </div>
+
+          <!-- Denied Section -->
+          <div style="margin-top:28px; border-top:1px solid var(--border); padding-top:20px;">
+            <div class="column-header" style="margin-bottom:10px;">
+              <span class="dot denied"></span>
+              <div>
+                <h3>Denied</h3>
+                <span class="result-count" id="archiveDeniedCount"></span>
+              </div>
+            </div>
+            <div class="archive-list" id="archiveDeniedList"></div>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
 
@@ -529,6 +626,16 @@
       } else {
         showView("loginView");
       }
+    }
+
+    function showArchived() {
+      showView("archivedView");
+      initArchived();
+    }
+
+    function backToDashboard() {
+      showView("managerView");
+      renderBoard();
     }
 
     /* ══════════════════════════════════════════════
@@ -862,28 +969,116 @@
           const isHidden = list.classList.toggle("hidden");
           btn.innerHTML = `Older Approved <span>${count.textContent}</span> ${isHidden ? '▸' : '▾'}`;
         });
-        document.getElementById("clearDeniedBtn").addEventListener("click", async () => {
-          if (!confirm("Clear all denied requests?")) return;
+        document.getElementById("archiveDeniedBtn").addEventListener("click", async () => {
+          if (!confirm("Archive all denied requests? They will be moved to the Archived page.")) return;
           try {
-            await fetch(`${API_BASE}/requests/denied`, { method: "DELETE" });
+            await fetch(`${API_BASE}/requests/denied/archive`, { method: "POST" });
             renderBoard();
           } catch (err) {
-            console.error("Failed to clear denied", err);
-            alert("Failed to clear denied requests.");
+            console.error("Failed to archive denied", err);
+            alert("Failed to archive denied requests.");
           }
         });
-        document.getElementById("clearOldApprovedBtn").addEventListener("click", async () => {
-          if (!confirm("Clear all approved requests older than 7 days?")) return;
+        document.getElementById("mgrArchiveLink").addEventListener("click", showArchived);
+        document.getElementById("archiveApprovedBtn").addEventListener("click", async () => {
+          if (!confirm("Archive all approved requests? They will be moved to the Archived page.")) return;
           try {
-            await fetch(`${API_BASE}/requests/approved/old`, { method: "DELETE" });
+            await fetch(`${API_BASE}/requests/approved/archive`, { method: "POST" });
             renderBoard();
           } catch (err) {
-            console.error("Failed to clear old approved", err);
-            alert("Failed to clear old approved requests.");
+            console.error("Failed to archive approved", err);
+            alert("Failed to archive approved requests.");
           }
         });
         document.getElementById("mgrLogoutBtn").addEventListener("click", logout);
         mgrInitialized = true;
+      }
+    }
+
+    /* ══════════════════════════════════════════════
+       ARCHIVED
+       ══════════════════════════════════════════════ */
+    let archivedInitialized = false;
+
+    function buildArchiveCard(req) {
+      const card = document.createElement("div");
+      card.className = "archive-card";
+      const isApproved = req.status === "archived-approved";
+      card.innerHTML = `
+        <div class="archive-email">${req.email || "Unknown"}</div>
+        <div class="archive-route"><strong>${req.currentSite} → ${req.preferredSite}</strong> · ${req.preferredShift || ""}</div>
+        ${req.denialReason ? `<div class="archive-reason">Denial reason: ${req.denialReason}</div>` : ""}
+        ${req.notes ? `<p class="notes">${req.notes}</p>` : ""}
+        <div class="archive-dates">Submitted: ${formatDate(req.submittedAt)} · Archived: ${formatDate(req.updatedAt)}</div>
+      `;
+      return card;
+    }
+
+    function renderArchiveSection(listEl, countEl, data, emptyMsg) {
+      listEl.innerHTML = "";
+      countEl.textContent = `${data.length} result${data.length !== 1 ? "s" : ""}`;
+      if (data.length === 0) {
+        listEl.innerHTML = `<div class="archive-empty">${emptyMsg}</div>`;
+        return;
+      }
+      data.forEach(req => listEl.appendChild(buildArchiveCard(req)));
+    }
+
+    async function loadArchivedRequests(emailFilter) {
+      const approvedListEl = document.getElementById("archiveApprovedList");
+      const approvedCountEl = document.getElementById("archiveApprovedCount");
+      const deniedListEl = document.getElementById("archiveDeniedList");
+      const deniedCountEl = document.getElementById("archiveDeniedCount");
+
+      approvedListEl.innerHTML = "";
+      deniedListEl.innerHTML = "";
+      approvedCountEl.textContent = "Loading...";
+      deniedCountEl.textContent = "Loading...";
+
+      try {
+        let approvedUrl, deniedUrl;
+        if (emailFilter && emailFilter.trim()) {
+          const enc = encodeURIComponent(emailFilter.trim());
+          approvedUrl = `${API_BASE}/requests/search?email=${enc}&status=archived-approved`;
+          deniedUrl = `${API_BASE}/requests/search?email=${enc}&status=archived-denied`;
+        } else {
+          approvedUrl = `${REQUESTS_URL}?status=archived-approved`;
+          deniedUrl = `${REQUESTS_URL}?status=archived-denied`;
+        }
+
+        const [approvedRes, deniedRes] = await Promise.all([fetch(approvedUrl), fetch(deniedUrl)]);
+        if (!approvedRes.ok || !deniedRes.ok) throw new Error("Failed to fetch");
+        const [approvedData, deniedData] = await Promise.all([approvedRes.json(), deniedRes.json()]);
+
+        const noMatchMsg = emailFilter ? "No archived requests matching that email." : "No archived requests yet.";
+        renderArchiveSection(approvedListEl, approvedCountEl, approvedData, noMatchMsg);
+        renderArchiveSection(deniedListEl, deniedCountEl, deniedData, noMatchMsg);
+      } catch (err) {
+        console.error("Failed to load archived requests", err);
+        approvedCountEl.textContent = "";
+        deniedCountEl.textContent = "";
+        approvedListEl.innerHTML = `<div class="archive-empty">Failed to load archived requests.</div>`;
+        deniedListEl.innerHTML = `<div class="archive-empty">Failed to load archived requests.</div>`;
+      }
+    }
+
+    function initArchived() {
+      loadArchivedRequests();
+
+      if (!archivedInitialized) {
+        document.getElementById("archiveBackBtn").addEventListener("click", backToDashboard);
+        document.getElementById("archiveLogoutBtn").addEventListener("click", logout);
+        document.getElementById("archiveSearchBtn").addEventListener("click", () => {
+          const query = document.getElementById("archiveSearchInput").value;
+          loadArchivedRequests(query);
+        });
+        document.getElementById("archiveSearchInput").addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            loadArchivedRequests(e.target.value);
+          }
+        });
+        archivedInitialized = true;
       }
     }
 

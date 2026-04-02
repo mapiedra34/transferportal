@@ -16,7 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = new URL(".", import.meta.url).pathname.slice(1);
 const publicDir = join(__dirname, "public");
 
-const VALID_STATUSES = ["received", "in-review", "approved", "denied"];
+const VALID_STATUSES = ["received", "in-review", "approved", "denied", "archived-approved", "archived-denied"];
 
 // Initialize PostgreSQL connection pool
 const pool = new Pool({
@@ -175,29 +175,57 @@ app.patch("/api/requests/:id/status", async (req, res) => {
   }
 });
 
-// DELETE /api/requests/denied - Delete all denied requests
-app.delete("/api/requests/denied", async (req, res) => {
+// POST /api/requests/denied/archive - Archive all denied requests
+app.post("/api/requests/denied/archive", async (req, res) => {
   try {
-    const result = await pool.query("DELETE FROM requests WHERE status = 'denied'");
-    res.json({ deleted: result.rowCount });
+    const now = new Date().toISOString();
+    const result = await pool.query(
+      "UPDATE requests SET status = 'archived-denied', \"updatedAt\" = $1 WHERE status = 'denied'",
+      [now]
+    );
+    res.json({ archived: result.rowCount });
   } catch (error) {
-    console.error("Database delete failed:", error);
-    res.status(500).json({ error: "Failed to delete requests" });
+    console.error("Database archive failed:", error);
+    res.status(500).json({ error: "Failed to archive requests" });
   }
 });
 
-// DELETE /api/requests/approved/old - Delete old approved requests (>7 days)
-app.delete("/api/requests/approved/old", async (req, res) => {
+// POST /api/requests/approved/archive - Archive all approved requests
+app.post("/api/requests/approved/archive", async (req, res) => {
   try {
-    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const now = new Date().toISOString();
     const result = await pool.query(
-      "DELETE FROM requests WHERE status = 'approved' AND \"updatedAt\" < $1",
-      [cutoff]
+      "UPDATE requests SET status = 'archived-approved', \"updatedAt\" = $1 WHERE status = 'approved'",
+      [now]
     );
-    res.json({ deleted: result.rowCount });
+    res.json({ archived: result.rowCount });
   } catch (error) {
-    console.error("Database delete failed:", error);
-    res.status(500).json({ error: "Failed to delete requests" });
+    console.error("Database archive failed:", error);
+    res.status(500).json({ error: "Failed to archive requests" });
+  }
+});
+
+// GET /api/requests/search - Search requests by email
+app.get("/api/requests/search", async (req, res) => {
+  try {
+    const { email, status } = req.query;
+    if (!email) {
+      return res.status(400).json({ error: "Email query parameter is required" });
+    }
+    let query = "SELECT * FROM requests WHERE LOWER(email) LIKE $1";
+    const params = [`%${email.trim().toLowerCase()}%`];
+
+    if (status) {
+      query += " AND status = $2";
+      params.push(status);
+    }
+
+    query += " ORDER BY \"submittedAt\" DESC";
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Search failed:", error);
+    res.status(500).json({ error: "Failed to search requests" });
   }
 });
 
