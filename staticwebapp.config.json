@@ -2,7 +2,7 @@
   "routes": [
     {
       "route": "/api/*",
-      "allowedRoles": []
+      "origin": "https://transfer-portal-api-g7e4hse7efhvgbc4.centralus-01.azurewebsites.net"
     },
     {
       "route": "/*",
@@ -12,7 +12,7 @@
   ],
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/images/*", "/css/*", "/js/*", "/media/*"]
+    "exclude": ["/images/*", "/css/*", "/js/*", "/media/*", "/api/*"]
   },
   "mimeTypes": {
     ".json": "application/json",
