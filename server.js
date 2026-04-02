@@ -94,6 +94,36 @@ app.get("/api/requests", async (req, res) => {
   }
 });
 
+// POST /api/requests/denied/archive - Archive all denied requests
+app.post("/api/requests/denied/archive", async (req, res) => {
+  try {
+    const now = new Date().toISOString();
+    const result = await pool.query(
+      "UPDATE requests SET status = 'archived-denied', \"updatedAt\" = $1 WHERE status = 'denied'",
+      [now]
+    );
+    res.json({ archived: result.rowCount });
+  } catch (error) {
+    console.error("Database archive failed:", error);
+    res.status(500).json({ error: "Failed to archive requests" });
+  }
+});
+
+// POST /api/requests/approved/archive - Archive all approved requests
+app.post("/api/requests/approved/archive", async (req, res) => {
+  try {
+    const now = new Date().toISOString();
+    const result = await pool.query(
+      "UPDATE requests SET status = 'archived-approved', \"updatedAt\" = $1 WHERE status = 'approved'",
+      [now]
+    );
+    res.json({ archived: result.rowCount });
+  } catch (error) {
+    console.error("Database archive failed:", error);
+    res.status(500).json({ error: "Failed to archive requests" });
+  }
+});
+
 // POST /api/requests - Create a new request
 app.post("/api/requests", async (req, res) => {
   try {
@@ -172,36 +202,6 @@ app.patch("/api/requests/:id/status", async (req, res) => {
   } catch (error) {
     console.error("Database update failed:", error);
     res.status(500).json({ error: "Failed to update request" });
-  }
-});
-
-// POST /api/requests/denied/archive - Archive all denied requests
-app.post("/api/requests/denied/archive", async (req, res) => {
-  try {
-    const now = new Date().toISOString();
-    const result = await pool.query(
-      "UPDATE requests SET status = 'archived-denied', \"updatedAt\" = $1 WHERE status = 'denied'",
-      [now]
-    );
-    res.json({ archived: result.rowCount });
-  } catch (error) {
-    console.error("Database archive failed:", error);
-    res.status(500).json({ error: "Failed to archive requests" });
-  }
-});
-
-// POST /api/requests/approved/archive - Archive all approved requests
-app.post("/api/requests/approved/archive", async (req, res) => {
-  try {
-    const now = new Date().toISOString();
-    const result = await pool.query(
-      "UPDATE requests SET status = 'archived-approved', \"updatedAt\" = $1 WHERE status = 'approved'",
-      [now]
-    );
-    res.json({ archived: result.rowCount });
-  } catch (error) {
-    console.error("Database archive failed:", error);
-    res.status(500).json({ error: "Failed to archive requests" });
   }
 });
 

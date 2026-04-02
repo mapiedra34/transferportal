@@ -460,6 +460,7 @@
                   <h3>Approved</h3>
                   <p class="eyebrow" id="approvedCount">0</p>
                 </div>
+                <button id="archiveApprovedBtn" class="chip approved" style="margin-left:auto;font-size:12px;padding:5px 10px;border-color:var(--success);color:var(--success);">Archive</button>
               </div>
               <div class="list" id="approvedList"></div>
               <div id="olderApprovedSection" class="older-section hidden">
@@ -468,7 +469,6 @@
                 </div>
                 <div class="list hidden" id="olderApprovedList"></div>
               </div>
-              <button id="archiveApprovedBtn" class="chip approved" style="font-size:12px;padding:5px 10px;margin-top:10px;border-color:var(--success);color:var(--success);">Archive All Approved</button>
             </div>
             <div class="column" data-status="denied">
               <div class="column-header">
@@ -972,8 +972,15 @@
         document.getElementById("archiveDeniedBtn").addEventListener("click", async () => {
           if (!confirm("Archive all denied requests? They will be moved to the Archived page.")) return;
           try {
-            await fetch(`${API_BASE}/requests/denied/archive`, { method: "POST" });
-            renderBoard();
+            const res = await fetch(`${API_BASE}/requests/denied/archive`, { method: "POST" });
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              alert(err.error || "Failed to archive denied requests.");
+              return;
+            }
+            const data = await res.json();
+            console.log("Archived denied:", data.archived);
+            await renderBoard();
           } catch (err) {
             console.error("Failed to archive denied", err);
             alert("Failed to archive denied requests.");
@@ -983,8 +990,15 @@
         document.getElementById("archiveApprovedBtn").addEventListener("click", async () => {
           if (!confirm("Archive all approved requests? They will be moved to the Archived page.")) return;
           try {
-            await fetch(`${API_BASE}/requests/approved/archive`, { method: "POST" });
-            renderBoard();
+            const res = await fetch(`${API_BASE}/requests/approved/archive`, { method: "POST" });
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              alert(err.error || "Failed to archive approved requests.");
+              return;
+            }
+            const data = await res.json();
+            console.log("Archived approved:", data.archived);
+            await renderBoard();
           } catch (err) {
             console.error("Failed to archive approved", err);
             alert("Failed to archive approved requests.");
