@@ -3,7 +3,7 @@
     {
       "route": "/api/*",
       "origin": "https://transfer-portal-api-g7e4hse7efhvgbc4.centralus-01.azurewebsites.net",
-      "allowedRoles": []
+      "allowedRoles": ["anonymous"]
     },
     {
       "route": "/*",
