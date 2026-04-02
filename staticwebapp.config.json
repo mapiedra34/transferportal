@@ -2,7 +2,8 @@
   "routes": [
     {
       "route": "/api/*",
-      "origin": "https://transfer-portal-api-g7e4hse7efhvgbc4.centralus-01.azurewebsites.net"
+      "origin": "https://transfer-portal-api-g7e4hse7efhvgbc4.centralus-01.azurewebsites.net",
+      "allowedRoles": []
     },
     {
       "route": "/*",
@@ -17,5 +18,15 @@
   "mimeTypes": {
     ".json": "application/json",
     ".wasm": "application/wasm"
+  },
+  "responseOverrides": {
+    "400": {
+      "rewrite": "/index.html",
+      "statusCode": 200
+    },
+    "404": {
+      "rewrite": "/index.html",
+      "statusCode": 200
+    }
   }
 }
